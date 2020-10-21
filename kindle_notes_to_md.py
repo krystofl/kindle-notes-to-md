@@ -4,7 +4,6 @@ Convert an HTML file of book notes exported from an Amazon Kindle
 to a Markdown document
 '''
 import argparse
-from html.parser import HTMLParser
 import sys
 import traceback
 
@@ -15,22 +14,19 @@ logging_load_human_config()
 
 
 class Note:
-  # highlight or note
+  # highlight, possibly including a note
   def __init__(self):
-    self.text   = '' # the book text that was highligthed
-    self.note   = '' # any note I added
-    self.source = '' # info about the source of this note (location etc.)
+    self.text     = ''   # the book text that was highligthed
+    self.note     = ''   # any note I added
+    self.source   = ''   # info about the source of this note (location etc.)
+    self.location = None # int Location as given by Kindle
 
 
 
 class Chapter_notes:
   def __init__(self, chapter_title = ''):
     self.title = chapter_title # name of this chapter
-    self.notes = []            # list of Highlights
-
-  def append(self, note):
-    # append note to self.notes
-    self.notes.append(note)
+    self.notes = {} # Location (int) -> [Note]
 
 
 
@@ -59,7 +55,9 @@ class Kindle_notes:
 
     # this gets built up repeatedly over several iterations of the below loop,
     # then added to the chapter notes
-    new_note = None
+    wip_note = None
+
+    last_note_type = '' # should be either Highlight or Note
 
     for div in all_divs:
       # the class of the div
@@ -68,9 +66,8 @@ class Kindle_notes:
       try:
         div_contents = div.string.strip()
       except AttributeError as e:
+        # This happens, but we handle it as appropriate elsewhere
         # WARN("Couldn't strip contents of {}".format(c))
-        # INFO("div: {}".format(div))
-        # INFO("div.contents: {}".format(div.contents))
         div_contents = None
 
       # handle title and author
@@ -86,26 +83,55 @@ class Kindle_notes:
 
       # Notes look like so:
       # <div class="noteHeading">
-      # Highlight (<span class="highlight_yellow">yellow</span>) -  Location 942
+      # Highlight (<span class="highlight_yellow">yellow</span>) -  Location 180
       # </div>
       # <div class="noteText">
-      # This is the text in the book that was highlighted.
+      # Product management is a strange role.
+      # </div>
+      # <div class="noteHeading">
+      # Note -  Location 180
+      # </div>
+      # <div class="noteText">
+      # Strange roles are for strange people!
       # </div>
       elif c == 'noteHeading':
-        new_note = Note()
-        new_note.source = ' '.join(div.stripped_strings)
+        try:
+          # first figure out what location this note/highlight is for
+          source = ' '.join(div.stripped_strings)
+          location = int(source.split()[-1])
+          # INFO("Location {}".format(location))
 
+          # if a note with this location already exists...
+          if location in self.chapter_notes[-1].notes:
+            # add future info to the existing note
+            wip_note = self.chapter_notes[-1].notes[location]
+
+          # otherwise we need to create a new note for this location
+          else:
+            wip_note = Note()
+            wip_note.location = location
+
+            # this happens twice for notes, but that's OK
+            wip_note.source = ' '.join(div.stripped_strings)
+
+            # add this WIP note to the dictionary
+            self.chapter_notes[-1].notes[location] = wip_note
+
+          # the first word of the div should be either Highlight or Note
+          last_note_type = source.split()[0]
+
+        except Exception as e:
+          WARN("Couldn't figure out location from {}: {}".format(source, e))
+
+      # now we have the highlight or note text
       elif c == 'noteText':
-        new_note.text = div_contents
 
-        # add the note to the list
-        self.chapter_notes[-1].append(new_note)
+        # save as either Highlight or Note, as appropriate
+        if last_note_type == 'Highlight':
+          wip_note.text = div_contents
 
-      # TODO: handle notes (as opposed to just highlights)
-
-
-    WARN("TODO: handle notes (as opposed to just highlights)")
-    return
+        elif last_note_type == 'Note':
+          wip_note.note = div_contents
 
 
 
@@ -127,14 +153,20 @@ class Kindle_notes:
       md += "  - ## {}\n".format(chapter.title)
 
       # for each note in the chapter...
-      for note in chapter.notes:
+      for location in chapter.notes:
+        note = chapter.notes[location]
+
         # add the highlighted text
         md += "    - {}\n".format(note.text)
+
+        # if there is a note, add it in bold
+        if note.note != '':
+          md += "      - **{}**\n".format(note.note)
 
         # add the source of the text
         md += "      - {}\n".format(note.source)
 
-    #WARN("TODO: check if the file exists and handle as appropriate")
+    # WARN("TODO: check if the file exists and handle as appropriate")
 
     with open(outfile, 'w') as fp:
       fp.write(md)
