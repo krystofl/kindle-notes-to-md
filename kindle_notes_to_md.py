@@ -14,22 +14,33 @@ from eglogging import *
 logging_load_human_config()
 
 
+class Note:
+  # highlight or note
+  def __init__(self):
+    self.text   = '' # the book text that was highligthed
+    self.note   = '' # any note I added
+    self.source = '' # info about the source of this note (location etc.)
+
+
+
+class Chapter_notes:
+  def __init__(self, chapter_title = ''):
+    self.title = chapter_title # name of this chapter
+    self.notes = []            # list of Highlights
+
+  def append(self, note):
+    # append note to self.notes
+    self.notes.append(note)
+
+
 
 class Kindle_notes:
   def __init__(self):
-    '''
-    args are from argparse
-    '''
-
     self.book_title = ''
     self.author     = ''
 
-    # only those chapters for which notes exist
-    # each is a (title, [notes/highlights]) pair
-    self.chapters = []
-
-    # each chapter has notes & highlights
-    # each of those has a source
+    # list of Chapter_notes
+    self.chapter_notes = []
 
 
 
@@ -45,21 +56,56 @@ class Kindle_notes:
 
     # go through all the relevant parts
     all_divs = soup.find_all('div')
+
+    # this gets built up repeatedly over several iterations of the below loop,
+    # then added to the chapter notes
+    new_note = None
+
     for div in all_divs:
       # the class of the div
       c = div['class'][0]
 
+      try:
+        div_contents = div.string.strip()
+      except AttributeError as e:
+        # WARN("Couldn't strip contents of {}".format(c))
+        # INFO("div: {}".format(div))
+        # INFO("div.contents: {}".format(div.contents))
+        div_contents = None
+
       # handle title and author
       if c == 'bookTitle':
-        self.book_title = div.string.strip()
+        self.book_title = div_contents
       elif c == 'authors':
-        self.author = div.string.strip()
+        self.author = div_contents
 
-      # handle notes & highlights
+      # start of chapter
       elif c == 'sectionHeading':
         # add a new empty chapter
-        self.chapters.append((div.string.strip(), []))
+        self.chapter_notes.append(Chapter_notes(div_contents))
 
+      # Notes look like so:
+      # <div class="noteHeading">
+      # Highlight (<span class="highlight_yellow">yellow</span>) -  Location 942
+      # </div>
+      # <div class="noteText">
+      # This is the text in the book that was highlighted.
+      # </div>
+      elif c == 'noteHeading':
+        new_note = Note()
+        new_note.source = ' '.join(div.stripped_strings)
+
+      elif c == 'noteText':
+        new_note.text = div_contents
+
+        # add the note to the list
+        self.chapter_notes[-1].append(new_note)
+
+      # TODO: handle notes (as opposed to just highlights)
+
+
+    WARN("TODO: handle notes (as opposed to just highlights)")
+    return
 
 
 
@@ -74,10 +120,21 @@ class Kindle_notes:
 
     # all the highlights
     md += "- # Raw Highlights & Notes:\n"
-    for chapter in self.chapters:
-      md += "  - ## {}\n".format(chapter[0])
 
-    WARN("TODO: check if the file exists and handle as appropriate")
+    # for each chapter...
+    for chapter in self.chapter_notes:
+      # add a new heading 1 bullet with the chapter title
+      md += "  - ## {}\n".format(chapter.title)
+
+      # for each note in the chapter...
+      for note in chapter.notes:
+        # add the highlighted text
+        md += "    - {}\n".format(note.text)
+
+        # add the source of the text
+        md += "      - {}\n".format(note.source)
+
+    #WARN("TODO: check if the file exists and handle as appropriate")
 
     with open(outfile, 'w') as fp:
       fp.write(md)
