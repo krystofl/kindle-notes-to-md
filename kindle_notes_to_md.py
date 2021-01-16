@@ -4,6 +4,7 @@ Convert an HTML file of book notes exported from an Amazon Kindle
 to a Markdown document
 '''
 import argparse
+from collections import OrderedDict
 import sys
 import traceback
 
@@ -26,7 +27,11 @@ class Note:
 class Chapter_notes:
   def __init__(self, chapter_title = ''):
     self.title = chapter_title # name of this chapter
-    self.notes = {} # Location (int) -> [Note]
+    self.notes = OrderedDict() # Location (int) -> [Note]
+
+  def get_last_note(self):
+    # returns the most recently-added note
+    return self.notes[next(reversed(self.notes))]
 
 
 
@@ -101,13 +106,26 @@ class Kindle_notes:
           location = int(source.split()[-1])
           # INFO("Location {}".format(location))
 
-          # if a note with this location already exists...
-          if location in self.chapter_notes[-1].notes:
-            # add future info to the existing note
-            wip_note = self.chapter_notes[-1].notes[location]
+          # the first word of the div should be either Highlight or Note
+          last_note_type = source.split()[0]
 
-          # otherwise we need to create a new note for this location
+          # if it's a "Note", add it to the previous highlight
+          # because that's what the note is about
+          # sometimes the exported notes have slightly different locations for
+          #   highlights and notes on long passages
+          if last_note_type == 'Note':
+            try:
+              wip_note = self.chapter_notes[-1].get_last_note()
+            except Exception as e:
+              WARN("Exception getting last-inserted note: {}".format(e))
+              wip_note = None
+
+          # make a new note for Highlights
           else:
+            wip_note = None
+
+          # if we don't have a note, create one
+          if wip_note is None:
             wip_note = Note()
             wip_note.location = location
 
@@ -116,9 +134,6 @@ class Kindle_notes:
 
             # add this WIP note to the dictionary
             self.chapter_notes[-1].notes[location] = wip_note
-
-          # the first word of the div should be either Highlight or Note
-          last_note_type = source.split()[0]
 
         except Exception as e:
           WARN("Couldn't figure out location from {}: {}".format(source, e))
