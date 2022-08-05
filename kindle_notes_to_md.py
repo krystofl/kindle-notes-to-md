@@ -49,14 +49,14 @@ class Kindle_notes:
     # parse an input HTML file
 
     # read the file to a string
-    with open(html_file, 'r') as fp:
+    with open(html_file, 'r', encoding='utf8') as fp:
       htmls = fp.read()
 
     # parse the string
     soup = BeautifulSoup(htmls, 'html.parser')
 
     # go through all the relevant parts
-    all_divs = soup.find_all('div')
+    all_divs = soup.select('[class]')
 
     # this gets built up repeatedly over several iterations of the below loop,
     # then added to the chapter notes
@@ -69,7 +69,7 @@ class Kindle_notes:
       c = div['class'][0]
 
       try:
-        div_contents = div.string.strip()
+        div_contents = div.get_text().strip().replace(u' \xa0', '')
       except AttributeError as e:
         # This happens, but we handle it as appropriate elsewhere
         # WARN("Couldn't strip contents of {}".format(c))
@@ -183,7 +183,7 @@ class Kindle_notes:
 
     # WARN("TODO: check if the file exists and handle as appropriate")
 
-    with open(outfile, 'w') as fp:
+    with open(outfile, 'w', encoding='utf8') as fp:
       fp.write(md)
 
     INFO("Wrote the output to {}".format(outfile), LOG_COLORS['GREEN'])
