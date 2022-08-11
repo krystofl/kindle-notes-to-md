@@ -8,6 +8,7 @@ from collections import OrderedDict
 import sys
 import traceback
 import os
+import pyperclip
 
 from bs4 import BeautifulSoup
 
@@ -152,10 +153,7 @@ class Kindle_notes:
         elif last_note_type == 'Note':
           wip_note.note = div_contents
 
-
-
-  def write_to_file(self, args):
-    # write the markdown file
+  def output_md(self, args):
 
     # title & author
     md =  "- Meta:\n"
@@ -188,12 +186,20 @@ class Kindle_notes:
 
     # WARN("TODO: check if the file exists and handle as appropriate")
 
-    with open(args.output, 'w', encoding='utf8') as fp:
-      fp.write(md)
+    if args.clipboard:
+      pyperclip.copy(md)
 
-    INFO("Wrote the output to {}".format(args.output), LOG_COLORS['GREEN'])
+      INFO("Copied the output to clipboard", LOG_COLORS['GREEN'])
+    else:
+      # write the markdown file
+      with open(args.output, 'w', encoding='utf8') as fp:
+        fp.write(md)
+
+      INFO("Wrote the output to {}".format(args.output), LOG_COLORS['GREEN'])
 
 
+  def copy_to_clipboard(self):
+    """Copy result directly into clipboard"""
 
 def parse_command_line_args():
 
@@ -209,6 +215,10 @@ def parse_command_line_args():
                       action=argparse.BooleanOptionalAction,
                       default=True,
                       help='Whether to export location of notes/highlights')
+
+  parser.add_argument('-c', '--clipboard',
+                      action='store_true',
+                      help='Use to export .md directly to clipboard instead of file')
 
   parser.add_argument('-o', '--output',
                       default='',
@@ -229,7 +239,7 @@ if __name__ == '__main__':
 
     notes = Kindle_notes()
     notes.parse_file(args.input)
-    notes.write_to_file(args)
+    notes.output_md(args)
 
   except Exception as ex:
     CRITICAL("Exception: {}".format(ex))
