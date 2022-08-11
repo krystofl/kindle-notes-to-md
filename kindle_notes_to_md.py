@@ -7,6 +7,7 @@ import argparse
 from collections import OrderedDict
 import sys
 import traceback
+import re
 
 from bs4 import BeautifulSoup
 
@@ -140,6 +141,9 @@ class Kindle_notes:
 
       # now we have the highlight or note text
       elif c == 'noteText':
+
+        # remove duplicated Location text appended due to misplaced </div> that new Kindle App adds in noteHeading
+        div_contents = re.sub('\nHighlight (.*) - Location [0-9]*', '', div_contents)
 
         # save as either Highlight or Note, as appropriate
         if last_note_type == 'Highlight':
