@@ -143,7 +143,7 @@ class Kindle_notes:
       elif c == 'noteText':
 
         # remove duplicated Location text appended due to misplaced </div> that new Kindle App adds in noteHeading
-        div_contents = re.sub('\nHighlight (.*) - Location [0-9]*', '', div_contents)
+        div_contents = div_contents.split('\n')[0]
 
         # save as either Highlight or Note, as appropriate
         if last_note_type == 'Highlight':
