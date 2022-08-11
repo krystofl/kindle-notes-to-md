@@ -154,7 +154,7 @@ class Kindle_notes:
 
 
 
-  def write_to_file(self, outfile : str = 'output.md'):
+  def write_to_file(self, args):
     # write the markdown file
 
     # title & author
@@ -182,15 +182,16 @@ class Kindle_notes:
         if note.note != '':
           md += "      - **{}**\n".format(note.note)
 
-        # add the source of the text
-        md += "      - {}\n".format(note.source)
+        if (args.location):
+          # add the source of the text
+          md += "      - {}\n".format(note.source)
 
     # WARN("TODO: check if the file exists and handle as appropriate")
 
-    with open(outfile, 'w', encoding='utf8') as fp:
+    with open(args.output, 'w', encoding='utf8') as fp:
       fp.write(md)
 
-    INFO("Wrote the output to {}".format(outfile), LOG_COLORS['GREEN'])
+    INFO("Wrote the output to {}".format(args.output), LOG_COLORS['GREEN'])
 
 
 
@@ -202,11 +203,16 @@ def parse_command_line_args():
 
   # positinal input argument
   parser.add_argument('input',
-                      help = 'Input HTML file')
+                      help='Input HTML file')
+
+  parser.add_argument('--location',
+                      action=argparse.BooleanOptionalAction,
+                      default=True,
+                      help='Whether to export location of notes/highlights')
 
   parser.add_argument('-o', '--output',
-                      default = 'converted.md',
-                      help = 'File to which to save the Markdown document')
+                      default='converted.md',
+                      help='File to which to save the Markdown document')
 
   args = parser.parse_args()
   return args
@@ -219,7 +225,7 @@ if __name__ == '__main__':
 
     notes = Kindle_notes()
     notes.parse_file(args.input)
-    notes.write_to_file(args.output)
+    notes.write_to_file(args)
 
   except Exception as ex:
     CRITICAL("Exception: {}".format(ex))
