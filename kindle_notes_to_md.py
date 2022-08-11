@@ -7,7 +7,7 @@ import argparse
 from collections import OrderedDict
 import sys
 import traceback
-import re
+import os
 
 from bs4 import BeautifulSoup
 
@@ -211,10 +211,14 @@ def parse_command_line_args():
                       help='Whether to export location of notes/highlights')
 
   parser.add_argument('-o', '--output',
-                      default='converted.md',
+                      default='',
                       help='File to which to save the Markdown document')
 
   args = parser.parse_args()
+
+  # if no output passed, output .md file next to original one
+  args.output = os.path.splitext(args.input)[0] + '.md'
+
   return args
 
 
