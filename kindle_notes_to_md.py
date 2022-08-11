@@ -182,18 +182,19 @@ class KindleNotes:
                     # add the source of the text
                     md += "      - {}\n".format(note.source)
 
-        # WARN("TODO: check if the file exists and handle as appropriate")
-
         if args.clipboard:
             pyperclip.copy(md)
 
             INFO("Copied the output to clipboard", LOG_COLORS['GREEN'])
         else:
             # write the markdown file
-            with open(args.output, 'w', encoding='utf8') as fp:
-                fp.write(md)
+            if not os.path.exists(args.output) or args.override:
+                with open(args.output, 'w', encoding='utf8') as fp:
+                    fp.write(md)
 
-            INFO("Wrote the output to {}".format(args.output), LOG_COLORS['GREEN'])
+                INFO("Wrote the output to {}".format(args.output), LOG_COLORS['GREEN'])
+            else:
+                INFO("Could not save .md file, because it already exists. Use --override flag.", LOG_COLORS['RED'])
 
     def copy_to_clipboard(self):
         """Copy result directly into clipboard"""
@@ -216,6 +217,10 @@ def parse_command_line_args():
     parser.add_argument('-c', '--clipboard',
                         action='store_true',
                         help='Use to export .md directly to clipboard instead of file')
+
+    parser.add_argument('-y', '--override',
+                        action='store_true',
+                        help='Whether to override .md file in case if one already exists')
 
     parser.add_argument('-o', '--output',
                         default='',
