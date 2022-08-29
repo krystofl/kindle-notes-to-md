@@ -18,6 +18,13 @@ Convert the example notes:
 
     kindle_notes_to_md.py example_notebook.html
 
+Optional arguments:
+
+    -nl, --no-location    Whether to skip export of location of notes/highlights
+    -c, --clipboard       Use to export .md directly to the clipboard instead of file 
+    -y, --override        Whether to override .md file in case if one already exists
+    -o OUTPUT, --output   A file to which save the Markdown document
+
 You can then open `converted.md` in your favorite text editor.
 
 If you copy-paste the contents of that file into

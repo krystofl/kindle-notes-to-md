@@ -4,46 +4,44 @@ Convert an HTML file of book notes exported from an Amazon Kindle
 to a Markdown document
 '''
 import argparse
-from collections import OrderedDict
+import os
 import sys
 import traceback
+from collections import OrderedDict
 
+import pyperclip
 from bs4 import BeautifulSoup
-
 from eglogging import *
+
 logging_load_human_config()
 
 
 class Note:
   # highlight, possibly including a note
   def __init__(self):
-    self.text     = ''   # the book text that was highligthed
-    self.note     = ''   # any note I added
-    self.source   = ''   # info about the source of this note (location etc.)
-    self.location = None # int Location as given by Kindle
-
+    self.text = ''  # the book text that was highlighted
+    self.note = ''  # any note I added
+    self.source = ''  # info about the source of this note (location etc.)
+    self.location = None  # int Location as given by Kindle
 
 
 class Chapter_notes:
-  def __init__(self, chapter_title = ''):
-    self.title = chapter_title # name of this chapter
-    self.notes = OrderedDict() # Location (int) -> [Note]
+  def __init__(self, chapter_title=''):
+    self.title = chapter_title  # name of this chapter
+    self.notes = OrderedDict()  # Location (int) -> [Note]
 
   def get_last_note(self):
     # returns the most recently-added note
     return self.notes[next(reversed(self.notes))]
 
 
-
 class Kindle_notes:
   def __init__(self):
     self.book_title = ''
-    self.author     = ''
+    self.author = ''
 
     # list of Chapter_notes
     self.chapter_notes = []
-
-
 
   def parse_file(self, html_file: str):
     # parse an input HTML file
@@ -62,7 +60,7 @@ class Kindle_notes:
     # then added to the chapter notes
     wip_note = None
 
-    last_note_type = '' # should be either Highlight or Note
+    last_note_type = ''  # should be either Highlight or Note
 
     for div in all_divs:
       # the class of the div
@@ -100,9 +98,10 @@ class Kindle_notes:
       # Strange roles are for strange people!
       # </div>
       elif c == 'noteHeading':
+        # first figure out what location this note/highlight is for
+        source = ' '.join(div.stripped_strings)
+
         try:
-          # first figure out what location this note/highlight is for
-          source = ' '.join(div.stripped_strings)
           location = int(source.split()[-1])
           # INFO("Location {}".format(location))
 
@@ -141,6 +140,10 @@ class Kindle_notes:
       # now we have the highlight or note text
       elif c == 'noteText':
 
+        # fix a result of a misplaced </div> that new Kindle App (1.38.0) adds in noteHeading
+        # should work fine too, when Amazon will fix their app (split will just return single elem list)
+        div_contents = div_contents.split('\n')[0]
+
         # save as either Highlight or Note, as appropriate
         if last_note_type == 'Highlight':
           wip_note.text = div_contents
@@ -148,13 +151,10 @@ class Kindle_notes:
         elif last_note_type == 'Note':
           wip_note.note = div_contents
 
-
-
-  def write_to_file(self, outfile : str = 'output.md'):
-    # write the markdown file
+  def output_md(self, args):
 
     # title & author
-    md =  "- Meta:\n"
+    md = "- Meta:\n"
     md += "  - title: {}\n".format(self.book_title)
     md += "  - author: {}\n".format(self.author)
     md += "  - tags: #Books\n"
@@ -178,35 +178,62 @@ class Kindle_notes:
         if note.note != '':
           md += "      - **{}**\n".format(note.note)
 
-        # add the source of the text
-        md += "      - {}\n".format(note.source)
+        if args.location:
+          # add the source of the text
+          md += "      - {}\n".format(note.source)
 
-    # WARN("TODO: check if the file exists and handle as appropriate")
+    if args.clipboard:
+      pyperclip.copy(md)
 
-    with open(outfile, 'w', encoding='utf8') as fp:
-      fp.write(md)
+      INFO("Copied the output to clipboard", LOG_COLORS['GREEN'])
+    else:
+      # write the markdown file
+      if not os.path.exists(args.output) or args.override:
+        with open(args.output, 'w', encoding='utf8') as fp:
+          fp.write(md)
 
-    INFO("Wrote the output to {}".format(outfile), LOG_COLORS['GREEN'])
+        INFO("Wrote the output to {}".format(args.output), LOG_COLORS['GREEN'])
+      else:
+        INFO("Could not save .md file, because it already exists. Use --override flag.", LOG_COLORS['RED'])
 
+  def copy_to_clipboard(self):
+    """Copy result directly into clipboard"""
 
 
 def parse_command_line_args():
-
   description = "Convert an HTML file of book notes exported from an Amazon " \
                 "Kindle to a Markdown document "
-  parser = argparse.ArgumentParser(description = description)
+  parser = argparse.ArgumentParser(description=description)
 
   # positinal input argument
   parser.add_argument('input',
-                      help = 'Input HTML file')
+                      help='Input HTML file')
+
+  parser.add_argument('-nl', '--no-location',
+                      dest='location',
+                      action='store_false',
+                      default=True,
+                      help='Whether to skip export of location of notes/highlights')
+
+  parser.add_argument('-c', '--clipboard',
+                      action='store_true',
+                      help='Use to export .md directly to the clipboard instead of file')
+
+  parser.add_argument('-y', '--override',
+                      action='store_true',
+                      default=False,
+                      help='Whether to override .md file in case if one already exists')
 
   parser.add_argument('-o', '--output',
-                      default = 'converted.md',
-                      help = 'File to which to save the Markdown document')
+                      default='',
+                      help='A file to which save the Markdown document')
 
   args = parser.parse_args()
-  return args
 
+  # if no output passed, output .md file next to original one
+  args.output = os.path.splitext(args.input)[0] + '.md'
+
+  return args
 
 
 if __name__ == '__main__':
@@ -215,7 +242,7 @@ if __name__ == '__main__':
 
     notes = Kindle_notes()
     notes.parse_file(args.input)
-    notes.write_to_file(args.output)
+    notes.output_md(args)
 
   except Exception as ex:
     CRITICAL("Exception: {}".format(ex))
