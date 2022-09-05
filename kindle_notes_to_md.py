@@ -196,9 +196,6 @@ class Kindle_notes:
       else:
         INFO("Could not save .md file, because it already exists. Use --override flag.", LOG_COLORS['RED'])
 
-  def copy_to_clipboard(self):
-    """Copy result directly into clipboard"""
-
 
 def parse_command_line_args():
   description = "Convert an HTML file of book notes exported from an Amazon " \
