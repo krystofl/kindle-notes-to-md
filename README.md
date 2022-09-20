@@ -20,15 +20,26 @@ Convert the example notes:
 
 Optional arguments:
 
-    -nl, --no-location    Whether to skip export of location of notes/highlights
-    -c, --clipboard       Use to export .md directly to the clipboard instead of file 
-    -y, --override        Whether to override .md file in case if one already exists
+    -nl, --no-location    Do not include the source location of each note/highlight
+    -c, --clipboard       Export .md directly to the clipboard instead of file
+    -y, --override        Override .md file if one already exists
     -o OUTPUT, --output   A file to which save the Markdown document
 
-You can then open `converted.md` in your favorite text editor.
+You can then open `example_notebook.md` in your favorite text editor.
 
 If you copy-paste the contents of that file into
 [Roam Research](https://roamresearch.com), you'll get a nicely organized note as shown in the screenshot above.
+
+
+## Copying the output directly to the clipboard
+
+You can copy the output directly to your clipboard (so that you can later paste it into your preferred document) using the `-c --clipboard` flag. To make this work, you may need to install a package with a command-line interface to X selections. On Ubuntu, you can accomplish this with
+
+```
+sudo apt-get install xclip
+```
+
+There are some known issues with this working on Windows Subsystem for Linux (WSL) under Windows 11 which are yet-to-be-investigated.
 
 
 # How to get your notes in HTML format

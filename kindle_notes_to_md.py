@@ -19,10 +19,10 @@ logging_load_human_config()
 class Note:
   # highlight, possibly including a note
   def __init__(self):
-    self.text = ''  # the book text that was highlighted
-    self.note = ''  # any note I added
-    self.source = ''  # info about the source of this note (location etc.)
-    self.location = None  # int Location as given by Kindle
+    self.text     = ''   # the book text that was highlighted
+    self.note     = ''   # any note I added
+    self.source   = ''   # info about the source of this note (location etc.)
+    self.location = None # int Location as given by Kindle
 
 
 class Chapter_notes:
@@ -38,7 +38,7 @@ class Chapter_notes:
 class Kindle_notes:
   def __init__(self):
     self.book_title = ''
-    self.author = ''
+    self.author     = ''
 
     # list of Chapter_notes
     self.chapter_notes = []
@@ -98,10 +98,9 @@ class Kindle_notes:
       # Strange roles are for strange people!
       # </div>
       elif c == 'noteHeading':
-        # first figure out what location this note/highlight is for
-        source = ' '.join(div.stripped_strings)
-
         try:
+          # first figure out what location this note/highlight is for
+          source = ' '.join(div.stripped_strings)
           location = int(source.split()[-1])
           # INFO("Location {}".format(location))
 
@@ -135,7 +134,8 @@ class Kindle_notes:
             self.chapter_notes[-1].notes[location] = wip_note
 
         except Exception as e:
-          WARN("Couldn't figure out location from {}: {}".format(source, e))
+          try   : WARN("Couldn't figure out location from {}: {}".format(source, e))
+          except: WARN("Couldn't figure out location: {}".format(e))
 
       # now we have the highlight or note text
       elif c == 'noteText':
@@ -196,8 +196,6 @@ class Kindle_notes:
       else:
         INFO("Could not save .md file, because it already exists. Use --override flag.", LOG_COLORS['RED'])
 
-  def copy_to_clipboard(self):
-    """Copy result directly into clipboard"""
 
 
 def parse_command_line_args():
@@ -230,10 +228,11 @@ def parse_command_line_args():
 
   args = parser.parse_args()
 
-  # if no output passed, output .md file next to original one
+  # if no output passed, output .md file next to original HTML notes
   args.output = os.path.splitext(args.input)[0] + '.md'
 
   return args
+
 
 
 if __name__ == '__main__':
