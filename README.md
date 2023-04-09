@@ -27,8 +27,13 @@ Optional arguments:
 
 You can then open `example_notebook.md` in your favorite text editor.
 
-If you copy-paste the contents of that file into
-[Roam Research](https://roamresearch.com), you'll get a nicely organized note as shown in the screenshot above.
+You can import that markdown file into [Roam Research](https://roamresearch.com),
+and you'll get a nicely organized note as shown in the screenshot above.
+Copy-pasting into Roam no longer works.
+
+Roam seems to be in decline; you may wish to explore alternatives,
+such as [Obsidian](https://obsidian.md/).
+
 
 
 ## Copying the output directly to the clipboard
